@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spot Detection</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+<div class="container">
+    <aside class="sidebar">
+        <h2>Navigation</h2>
+        <ul>
+            <li><a href="#" id="upload-menu">Image Upload</a></li>
+            <li><a href="#" id="prep-menu">Image Preparation</a></li>
+            <li><a href="{{ url_for('spot_detection_page') }}" id="spot-detect">Spot Detection</a></li>
+        </ul>
+    </aside>
+
+    <main class="content">
+        <!-- Upload Section -->
+        <section id="upload-section">
+            <h1>Upload Your Image</h1>
+            <form id="upload-form">
+                <input type="file" id="file-input" accept=".png, .jpg, .jpeg, .tiff"><br><br>
+                <!-- Preview for the selected file -->
+                <img id="upload-preview" src="" alt="File preview" style="max-width:200px; display:none;">
+                <button type="submit" class="btn">Upload</button>
+            </form>
+        </section>
+
+        <!-- Preparation Tools Section -->
+        <section id="prep-tools-section" style="display:none;">
+            <h2>Image Preparation</h2>
+            <div class="prep-layout">
+                <!-- 1) Original Image -->
+                <div class="prep-col">
+                    <h4>Original Image</h4>
+                    <img id="original-preview" width="300" src="" alt="No image" />
+                    <br>
+                    <h4>Processed Image</h4>
+                    <img id="processed-preview" width="300" src="" alt="No transformations" />
+                    <div style="margin-top:1.5em;">
+                      <a href="/api/image/export?type=prep-overlay" class="btn">Export TIFF</a>
+                    </div>
+                </div>
+                <!-- 3) Sliders + Toggles + Undo/Redo -->
+                <div class="prep-col">
+                    <h3>Basic Adjustments</h3>
+                    <label>Contrast:
+                        <input type="number" id="contrast-input" step="0.1" min="0.5" max="3" value="1.0" style="width:60px;">
+                    </label>
+                    <input type="range" id="contrast-slider" min="0.5" max="3" step="0.1" value="1">
+
+                    <label>Gamma:
+                        <input type="number" id="gamma-input" step="0.1" min="0.5" max="3" value="1.0" style="width:60px;">
+                    </label>
+                    <input type="range" id="gamma-slider" min="0.5" max="3" step="0.1" value="1">
+
+
+                    <label>Sharpen:
+                        <input type="number" id="sharpen-input" step="0.5" min="1" max="5" value="1" style="width:60px;">
+                    </label>
+                    <input type="range" id="sharpen-slider" min="1" max="5" step="0.5" value="1">
+
+
+
+                    <div style="margin-top:1em;">
+                        <button id="grayscale-button" class="btn">Toggle Grayscale</button>
+                        <button id="negative-button" class="btn">Toggle Negative</button>
+                    </div>
+
+                    <!-- Circle Detection Section -->
+                    <div class="circle-detection-section" style="margin-top:2em; padding-top:1em; border-top:1px solid #2A3A48;">
+                        <h4 style="color:#E6D6C1; margin-bottom:1em;">Circle Extraction</h4>
+
+                        <label>Enable Circle Detection:
+                            <input type="checkbox" id="enable-circle-detection" style="margin-left:0.5em;">
+                        </label>
+
+                        <div id="circle-params" style="display:none; margin-top:1em;">
+                            <label>Center X:
+                                <input type="number" id="center-x-input" step="1" min="0" max="800" value="100" style="width:60px;">
+                            </label>
+                            <input type="range" id="center-x-slider" min="0" max="800" step="1" value="100">
+
+                            <label>Center Y:
+                                <input type="number" id="center-y-input" step="1" min="0" max="800" value="100" style="width:60px;">
+                            </label>
+                            <input type="range" id="center-y-slider" min="0" max="800" step="1" value="100">
+
+                            <label>Radius:
+                                <input type="number" id="radius-input" step="1" min="0" max="800" value="100" style="width:60px;">
+                            </label>
+                            <input type="range" id="circle-radius" min="0" max="800" step="1" value="100">
+
+                            <!-- Background Selection -->
+                            <div style="margin-top:1em;">
+                                <label>Circle Background:</label>
+                                <div style="margin-top:0.5em;">
+                                    <input type="radio" id="bg-original" name="circle-background" value="original">
+                                    <label for="bg-original" style="margin-right:1em;">Original</label>
+
+                                    <input type="radio" id="bg-white" name="circle-background" value="white" checked>
+                                    <label for="bg-white" style="margin-right:1em;">White</label>
+
+                                    <input type="radio" id="bg-black" name="circle-background" value="black">
+                                    <label for="bg-black">Black</label>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Binary Conversion Section -->
+                    <div class="binary-conversion-section" style="margin-top:2em; padding-top:1em; border-top:1px solid #2A3A48;">
+                        <h4 style="color:#E6D6C1; margin-bottom:1em;">Binary Conversion</h4>
+
+                        <label>Enable Binary Conversion:
+                            <input type="checkbox" id="enable-binary-conversion" style="margin-left:0.5em;">
+                        </label>
+
+                        <div id="binary-params" style="display:none; margin-top:1em;">
+                            <label>Method:</label>
+                            <select id="binary-method" style="width:100%; margin:0.5em 0; padding:4px; background:#223744; color:#E6D6C1; border:1px solid #2A3A48; border-radius:4px;">
+                                <option value="threshold">Simple Threshold</option>
+                                <option value="adaptive">Adaptive Threshold</option>
+                                <option value="otsu">Otsu's Method</option>
+                            </select>
+
+                            <div id="threshold-params">
+                                <label>Threshold Value:
+                                    <input type="number" id="threshold-value-input" step="1" min="0" max="255" value="127" style="width:60px;">
+                                </label>
+                                <input type="range" id="threshold-value-slider" min="0" max="255" step="1" value="127">
+                            </div>
+
+                            <div id="adaptive-params" style="display:none;">
+                                <label>Block Size (odd numbers):
+                                    <input type="number" id="block-size-input" step="2" min="3" max="99" value="11" style="width:60px;">
+                                </label>
+                                <input type="range" id="block-size-slider" min="3" max="99" step="2" value="11">
+
+                                <label>C Constant:
+                                    <input type="number" id="c-constant-input" step="1" min="-20" max="20" value="2" style="width:60px;">
+                                </label>
+                                <input type="range" id="c-constant-slider" min="-20" max="20" step="1" value="2">
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <div class="undo-redo" style="margin-top:1em;">
+                        <button id="prep-undo" class="btn">Undo (Ctrl+Z)</button>
+                        <button id="prep-redo" class="btn">Redo (Ctrl+Y)</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </main>
+</div>
+
+<footer id="analysis-log-footer">
+  <a href="/api/logs/export" class="btn">Download Analysis Log (CSV)</a>
+</footer>
+
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+</body>
+</html>

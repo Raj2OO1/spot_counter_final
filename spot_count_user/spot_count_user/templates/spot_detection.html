@@ -1,0 +1,123 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Spot Detection</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+        }
+        canvas {
+            border: 2px solid black;
+            display: block;
+            margin: 10px auto;
+        }
+    </style>
+</head>
+<body>
+
+    <h2>Processed Image (static)</h2>
+    <img id="processedImage"
+         src="{{ url_for('static', filename='processed_image.png') }}"
+         style="max-width:800px; display:block; margin:10px auto; border:2px solid black;">
+
+    <h2>Interactive Canvas (select area to count spots)</h2>
+    <canvas id="spotCanvas"></canvas>
+
+    <button id="countAllBtn">Count All Spots</button>
+    <button id="countSelectionBtn">Count Spots in Selection</button>
+
+    <p id="result"></p>
+
+    <script>
+        const spotCanvas = document.getElementById("spotCanvas");
+        const ctx = spotCanvas.getContext("2d");
+
+        let imgObj = new Image();
+        imgObj.src = "{{ url_for('static', filename='processed_image.png') }}";
+
+        let selX = 0, selY = 0, selW = 0, selH = 0;
+        let dragging = false;
+
+        imgObj.onload = function () {
+            const maxWidth = 800;
+            const scale = imgObj.width > maxWidth ? maxWidth / imgObj.width : 1;
+
+            window.imageScale = scale;
+
+            spotCanvas.width = imgObj.width * scale;
+            spotCanvas.height = imgObj.height * scale;
+
+            ctx.drawImage(imgObj, 0, 0, spotCanvas.width, spotCanvas.height);
+        };
+
+        // Mouse events for drawing rectangle
+        spotCanvas.addEventListener("mousedown", e => {
+            dragging = true;
+            const rect = spotCanvas.getBoundingClientRect();
+            selX = e.clientX - rect.left;
+            selY = e.clientY - rect.top;
+            selW = selH = 0;
+        });
+
+        spotCanvas.addEventListener("mousemove", e => {
+            if (dragging) {
+                const rect = spotCanvas.getBoundingClientRect();
+                selW = (e.clientX - rect.left) - selX;
+                selH = (e.clientY - rect.top) - selY;
+
+                ctx.drawImage(imgObj, 0, 0, spotCanvas.width, spotCanvas.height);
+                ctx.strokeStyle = "red";
+                ctx.lineWidth = 2;
+                ctx.strokeRect(selX, selY, selW, selH);
+            }
+        });
+
+        spotCanvas.addEventListener("mouseup", () => {
+            dragging = false;
+        });
+
+        // Map canvas rectangle → real image coordinates
+        function getRealCoords(x, y, w, h) {
+            const scale = window.imageScale || 1;
+            return {
+                x: Math.round(x / scale),
+                y: Math.round(y / scale),
+                w: Math.round(w / scale),
+                h: Math.round(h / scale)
+            };
+        }
+
+        // Count all spots
+        document.getElementById("countAllBtn").addEventListener("click", () => {
+            fetch("/count_spots", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ x: 0, y: 0, w: imgObj.width, h: imgObj.height })
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("result").innerText = "Total spots: " + data.count;
+            });
+        });
+
+        // Count spots in selection
+        document.getElementById("countSelectionBtn").addEventListener("click", () => {
+            const rect = getRealCoords(selX, selY, selW, selH);
+
+            fetch("/count_spots", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(rect)
+            })
+            .then(res => res.json())
+            .then(data => {
+                document.getElementById("result").innerText =
+                    `Spots in selected area: ${data.count}`;
+            });
+        });
+    </script>
+
+</body>
+</html>

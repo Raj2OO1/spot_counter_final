@@ -1,0 +1,106 @@
+/* Overall Layout */
+body {
+    font-family: sans-serif;
+    margin: 0;
+    background-color: #1A303F;
+    color: #E6D6C1;
+    display: flex;
+    height: 100vh;
+}
+.container { display: flex; width: 100%; }
+.sidebar {
+    width: 240px;
+    background: #162832;
+    padding: 1rem;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.5);
+    flex-shrink: 0;
+}
+.sidebar h2 { margin-bottom: 1rem; text-align: center; }
+.sidebar ul { list-style-type: none; padding: 0; }
+.sidebar ul li a {
+    color: #C2C2C2;
+    text-decoration: none;
+    display: block;
+    padding: 0.75rem;
+    border-radius: 8px;
+    transition: all 0.3s;
+    margin-bottom: 0.5rem;
+}
+.sidebar ul li a:hover, .sidebar ul li a.active {
+    background-color: #223744;
+    color: #fff;
+}
+.content { flex-grow: 1; padding: 2rem; overflow-y: auto; }
+section { margin-bottom: 2rem; }
+hr { border-color: #2A3A48; margin: 2rem 0; }
+
+/* Form Controls & Buttons */
+input[type="range"] { width: 90%; margin: 0.5rem 0 1rem 0; }
+input[type="number"] {
+    width: 60px;
+    background-color: #223744;
+    color: #E6D6C1;
+    border: 1px solid #2A3A48;
+    border-radius: 4px;
+    padding: 4px;
+}
+select { width: 100%; padding: 8px; margin: 0.5em 0; background: #223744; color: #E6D6C1; border: 1px solid #2A3A48; }
+.btn {
+    background: #1F2E39;
+    color: #C2C2C2;
+    font-weight: bold;
+    border: none;
+    padding: 10px 20px;
+    border-radius: 12px;
+    box-shadow: 4px 4px 8px rgba(0,0,0,0.5), -4px -4px 8px rgba(255,255,255,0.1);
+    cursor: pointer;
+    margin-top: 1rem;
+    transition: all 0.3s;
+}
+.btn:hover { background: #2A3A48; }
+.btn:disabled { background: #111; cursor: not-allowed; }
+
+/* Prep Page Layout */
+.prep-layout { display: flex; gap: 2rem; }
+.prep-col { flex: 1; }
+.prep-col.image-col { flex: 2; /* Make image column wider */ }
+.prep-col.controls-col { flex: 1; /* Make controls column narrower */ }
+.prep-col img { max-width: 100%; border-radius: 10px; border: 2px solid #2A3A48; margin-bottom: 1rem; }
+.tool-section { margin-top: 2em; padding-top: 1em; border-top: 1px solid #2A3A48; }
+
+
+#analysis-log-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 60%;
+  display: 1;
+  justify-content: center;
+  padding: 2em 0;
+}
+#analysis-log-footer .btn {
+  float: none;
+  position: none;
+}
+
+.two-column {
+  display: flex;
+  gap: 20px;
+  padding: 20px;
+}
+
+.column {
+  flex: 1;
+  border: 1px solid #ccc;
+  padding: 15px;
+  background: #fafafa;
+}
+
+#spotCanvas {
+  display: block;
+  margin: 0 auto;
+  border: 2px solid #333;
+  max-width: 100%;
+  height: auto;
+}
+
