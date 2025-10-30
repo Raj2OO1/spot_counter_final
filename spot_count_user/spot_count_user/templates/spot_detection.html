@@ -19,7 +19,7 @@
 
     <h2>Processed Image (static)</h2>
     <img id="processedImage"
-         src="{{ url_for('static', filename='processed_image.png') }}"
+         src="{{ url_for('serve_processed_file', filename=filename) }}"
          style="max-width:800px; display:block; margin:10px auto; border:2px solid black;">
 
     <h2>Interactive Canvas (select area to count spots)</h2>
@@ -34,8 +34,10 @@
         const spotCanvas = document.getElementById("spotCanvas");
         const ctx = spotCanvas.getContext("2d");
 
+        const processedImgUrl = {{ url_for('serve_processed_file', filename=filename) | tojson }};
+
         let imgObj = new Image();
-        imgObj.src = "{{ url_for('static', filename='processed_image.png') }}";
+        imgObj.src = processedImgUrl;
 
         let selX = 0, selY = 0, selW = 0, selH = 0;
         let dragging = false;
