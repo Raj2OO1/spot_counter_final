@@ -62,13 +62,14 @@ if (prepMenu) {
   });
 }
 if (laneLink) {
-  laneLink.addEventListener('click', () => {
+  laneLink.addEventListener('click', (event) => {
+    event.preventDefault();
     if (!uploadedFilename) {
       alert('No file uploaded');
       return;
     }
     localStorage.setItem('uploadedFilename', uploadedFilename);
-    window.location.href = '/lane_detection';
+    window.location.href = laneLink.href;
   });
 }
 
