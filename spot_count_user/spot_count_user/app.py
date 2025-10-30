@@ -372,7 +372,7 @@ def apply_spot_counting(image, ref_height=20, ref_width=20, remove_background=Tr
 
     for i in range(rows):
         for j in range(cols):
-            if image[i, j] == 255 and labeled_image[i, j] != -1:
+            if image[i, j] == 255 and labeled_image[i, j] == 0:
                 flood_fill(i, j, label_counter, image, labeled_image)
                 x, y, w, h = cv2.boundingRect(np.uint8(labeled_image == label_counter))
                 if is_within_tolerance(h, ref_height) and is_within_tolerance(w, ref_width):
