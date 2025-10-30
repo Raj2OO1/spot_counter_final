@@ -345,6 +345,43 @@ def is_within_tolerance(dim, ref_dim, tolerance=0.5):
     return lower <= dim <= upper
 
 
+def apply_spot_counting(image, ref_height=20, ref_width=20, remove_background=True):
+    """Count spots in a binary (0/255) grayscale image."""
+    if image is None or image.size == 0:
+        return 0
+
+    rows, cols = image.shape
+    labeled_image = np.zeros_like(image, dtype=int)
+
+    if remove_background:
+        outer_x, outer_y = -1, -1
+        for i in range(rows):
+            for j in range(cols):
+                if i in (0, rows - 1) or j in (0, cols - 1):
+                    if image[i, j] == 255:
+                        outer_x, outer_y = i, j
+                        break
+            if outer_x != -1:
+                break
+
+        if outer_x != -1:
+            flood_fill(outer_x, outer_y, -1, image, labeled_image)
+
+    label_counter = 1
+    spot_counts = 0
+
+    for i in range(rows):
+        for j in range(cols):
+            if image[i, j] == 255 and labeled_image[i, j] != -1:
+                flood_fill(i, j, label_counter, image, labeled_image)
+                x, y, w, h = cv2.boundingRect(np.uint8(labeled_image == label_counter))
+                if is_within_tolerance(h, ref_height) and is_within_tolerance(w, ref_width):
+                    spot_counts += 1
+                label_counter += 1
+
+    return spot_counts
+
+
 @app.route('/spot_detection')
 def spot_detection_page():
     filename = session.get('processed_image')
@@ -365,38 +402,7 @@ def api_spot_count():
     if image is None:
         return jsonify({'error':'Failed to load image'}), 500
 
-    rows, cols = image.shape
-    labeled_image = np.zeros_like(image, dtype=int)
-
-    # find background region
-    outer_x, outer_y = -1, -1
-    for i in range(rows):
-        for j in range(cols):
-            if image[i, j] == 255:
-                outer_x, outer_y = i, j
-                break
-        if outer_x != -1:
-            break
-
-    if outer_x == -1:
-        return jsonify({'spots': 0})
-
-    flood_fill(outer_x, outer_y, -1, image, labeled_image)
-
-    label_counter = 1
-    spot_counts = 0
-    ref_height, ref_width = 20, 20  # default ref size, could be updated
-
-    for i in range(rows):
-        for j in range(cols):
-            if image[i, j] == 255 and labeled_image[i, j] != -1:
-                flood_fill(i, j, label_counter, image, labeled_image)
-                x, y, w, h = cv2.boundingRect(np.uint8(labeled_image == label_counter))
-                if is_within_tolerance(h, ref_height) and is_within_tolerance(w, ref_width):
-                    spot_counts += 1
-                label_counter += 1
-
-    return jsonify({'spots': spot_counts})
+    return jsonify({'spots': apply_spot_counting(image)})
 
 
 @app.route('/api/spot_filter', methods=['POST'])
@@ -419,31 +425,42 @@ def api_spot_filter():
     if roi.size == 0:
         return jsonify({'spots': 0})
 
-    rows, cols = roi.shape
-    labeled_image = np.zeros_like(roi, dtype=int)
-    label_counter = 1
-    spot_counts = 0
-    ref_height, ref_width = 20, 20
-
-    for i in range(rows):
-        for j in range(cols):
-            if roi[i, j] == 255 and labeled_image[i, j] == 0:
-                flood_fill(i, j, label_counter, roi, labeled_image)
-                x, y, w, h = cv2.boundingRect(np.uint8(labeled_image == label_counter))
-                if is_within_tolerance(h, ref_height) and is_within_tolerance(w, ref_width):
-                    spot_counts += 1
-                label_counter += 1
-
-    return jsonify({'spots': spot_counts})
+    return jsonify({'spots': apply_spot_counting(roi, remove_background=False)})
 
 @app.route("/count_spots", methods=["POST"])
 def count_spots():
-    rect = request.get_json()
-    x, y, w, h = rect["x"], rect["y"], rect["w"], rect["h"]
+    rect = request.get_json() or {}
 
-    count = apply_spot_counting("static/processed_image.png", x, y, w, h)
+    filename = session.get('processed_image')
+    if not filename:
+        return jsonify({'error': 'No processed image'}), 404
 
-    return {"count": int(count)}
+    file_path = os.path.join(app.config['PROCESSED_FOLDER'], filename)
+    image = cv2.imread(file_path, cv2.IMREAD_GRAYSCALE)
+    if image is None:
+        return jsonify({'error': 'Failed to load image'}), 500
+
+    try:
+        x = int(rect.get('x', 0))
+        y = int(rect.get('y', 0))
+        w = int(rect.get('w', image.shape[1]))
+        h = int(rect.get('h', image.shape[0]))
+    except (TypeError, ValueError):
+        return jsonify({'error': 'Invalid region values'}), 400
+
+    x1 = max(0, min(x, x + w))
+    x2 = min(image.shape[1], max(x, x + w))
+    y1 = max(0, min(y, y + h))
+    y2 = min(image.shape[0], max(y, y + h))
+
+    if x1 >= x2 or y1 >= y2:
+        return jsonify({'count': 0})
+
+    roi = image[y1:y2, x1:x2]
+    remove_background = (x1 == 0 and y1 == 0 and x2 == image.shape[1] and y2 == image.shape[0])
+    count = apply_spot_counting(roi, remove_background=remove_background)
+
+    return jsonify({'count': int(count)})
 
 
 if __name__ == '__main__':
